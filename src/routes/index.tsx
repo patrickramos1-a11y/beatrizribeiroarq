@@ -140,6 +140,11 @@ function AdminDashboard() {
                   <Button size="sm" variant="ghost" onClick={() => copyLink(b.public_token)} className="gap-1.5">
                     <Copy className="w-3.5 h-3.5" /> Copiar
                   </Button>
+                  <Link to="/editor/$id" params={{ id: b.id }}>
+                    <Button size="sm" variant="outline" className="gap-1.5">
+                      <Pencil className="w-3.5 h-3.5" /> Editar
+                    </Button>
+                  </Link>
                   <Link to="/briefing/$token" params={{ token: b.public_token }}>
                     <Button size="sm" variant="outline" className="gap-1.5">
                       Abrir <ArrowUpRight className="w-3.5 h-3.5" />
