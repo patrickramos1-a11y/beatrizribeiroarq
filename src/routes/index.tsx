@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { listBriefings, resetPlatform, createBriefing, getOrCreateLibraryBriefing } from "@/lib/briefing-queries";
+import { listBriefings, resetPlatform, createBriefing } from "@/lib/briefing-queries";
 import { PageShell } from "@/components/Brand";
 import { StatusBadge } from "@/components/KindBadge";
 import { Button } from "@/components/ui/button";
@@ -51,12 +51,7 @@ function AdminDashboard() {
   };
 
   const openLibrary = async () => {
-    try {
-      const library = await getOrCreateLibraryBriefing();
-      navigate({ to: "/editor/$id", params: { id: library.id } });
-    } catch (e: any) {
-      toast.error("Erro ao abrir biblioteca", { description: e.message });
-    }
+    navigate({ to: "/library" });
   };
 
   const doReset = async () => {

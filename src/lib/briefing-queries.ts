@@ -191,6 +191,11 @@ export async function getOrCreateLibraryBriefing() {
   });
 }
 
+export async function getLibraryBriefingContent() {
+  const library = await getOrCreateLibraryBriefing();
+  return getBriefingByToken(library.public_token);
+}
+
 export async function updateBriefing(id: string, patch: Partial<Briefing>) {
   const { error } = await supabase.from("briefings").update(patch).eq("id", id);
   if (error) throw error;
@@ -271,7 +276,12 @@ export async function uploadBriefingImage(file: File): Promise<string> {
 
 /** Template library: list all questions across briefings with their options. */
 export async function listQuestionTemplates(excludeBriefingId?: string) {
-  let query = supabase.from("questions").select("*, briefings(client_name, title)").order("title");
+  const library = await getOrCreateLibraryBriefing();
+  let query = supabase
+    .from("questions")
+    .select("*, briefings(client_name, title)")
+    .eq("briefing_id", library.id)
+    .order("order_index");
   const { data: questions, error } = await query;
   if (error) throw error;
   const filtered = (questions ?? []).filter((q: any) => q.briefing_id !== excludeBriefingId);

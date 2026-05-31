@@ -9,12 +9,18 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as LibraryRouteImport } from './routes/library'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as EditorIdRouteImport } from './routes/editor.$id'
 import { Route as BriefingTokenRouteImport } from './routes/briefing.$token'
 import { Route as AdminIdRouteImport } from './routes/admin.$id'
 import { Route as BriefingTokenEnviadoRouteImport } from './routes/briefing.$token.enviado'
 
+const LibraryRoute = LibraryRouteImport.update({
+  id: '/library',
+  path: '/library',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -43,6 +49,7 @@ const BriefingTokenEnviadoRoute = BriefingTokenEnviadoRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/library': typeof LibraryRoute
   '/admin/$id': typeof AdminIdRoute
   '/briefing/$token': typeof BriefingTokenRouteWithChildren
   '/editor/$id': typeof EditorIdRoute
@@ -50,6 +57,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/library': typeof LibraryRoute
   '/admin/$id': typeof AdminIdRoute
   '/briefing/$token': typeof BriefingTokenRouteWithChildren
   '/editor/$id': typeof EditorIdRoute
@@ -58,6 +66,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/library': typeof LibraryRoute
   '/admin/$id': typeof AdminIdRoute
   '/briefing/$token': typeof BriefingTokenRouteWithChildren
   '/editor/$id': typeof EditorIdRoute
@@ -67,6 +76,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/library'
     | '/admin/$id'
     | '/briefing/$token'
     | '/editor/$id'
@@ -74,6 +84,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/library'
     | '/admin/$id'
     | '/briefing/$token'
     | '/editor/$id'
@@ -81,6 +92,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/library'
     | '/admin/$id'
     | '/briefing/$token'
     | '/editor/$id'
@@ -89,6 +101,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  LibraryRoute: typeof LibraryRoute
   AdminIdRoute: typeof AdminIdRoute
   BriefingTokenRoute: typeof BriefingTokenRouteWithChildren
   EditorIdRoute: typeof EditorIdRoute
@@ -96,6 +109,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/library': {
+      id: '/library'
+      path: '/library'
+      fullPath: '/library'
+      preLoaderRoute: typeof LibraryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -148,6 +168,7 @@ const BriefingTokenRouteWithChildren = BriefingTokenRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  LibraryRoute: LibraryRoute,
   AdminIdRoute: AdminIdRoute,
   BriefingTokenRoute: BriefingTokenRouteWithChildren,
   EditorIdRoute: EditorIdRoute,
