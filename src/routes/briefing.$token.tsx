@@ -132,6 +132,7 @@ function PublicBriefing() {
 
   if (!q) return <CenterMsg>Sem perguntas.</CenterMsg>;
   const qOptions = options.filter((o) => o.question_id === q.id);
+  const questionMeta = parseQuestionDescription(q.description);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -152,6 +153,9 @@ function PublicBriefing() {
       <main className="flex-1 mx-auto max-w-7xl w-full px-6 py-12">
         <div className="flex items-center gap-3 flex-wrap">
           <span className="eyebrow">{briefing.project_type}</span>
+          {questionMeta.section && (
+            <span className="eyebrow text-accent">{questionMeta.section}</span>
+          )}
           <KindBadge kind={q.kind} size="xs" />
           {q.kind === "multi" && (
             <span className="text-xs text-muted-foreground italic">Selecione quantas quiser</span>
@@ -161,7 +165,7 @@ function PublicBriefing() {
           )}
         </div>
         <h2 className="font-display text-3xl md:text-4xl mt-3 leading-tight">{q.title}</h2>
-        {q.description && <p className="text-muted-foreground mt-3 max-w-2xl">{q.description}</p>}
+        {questionMeta.description && <p className="text-muted-foreground mt-3 max-w-2xl">{questionMeta.description}</p>}
 
         <div className="mt-10">
           {q.kind === "text" ? (
@@ -173,7 +177,7 @@ function PublicBriefing() {
               className="text-base"
             />
           ) : (
-            <div className="flex gap-3 md:gap-4 w-full">
+            <div className={`grid gap-3 md:gap-4 w-full ${qOptions.some((option) => option.image_url) ? "md:grid-cols-4" : "md:grid-cols-3"}`}>
               {qOptions.map((o) => {
                 const selected = ans?.sel.includes(o.id);
                 const toggle = () => {
@@ -186,9 +190,7 @@ function PublicBriefing() {
                   }
                 };
                 return (
-                  <div key={o.id} className="flex-1 min-w-0">
-                    <OptionCard option={o} selected={!!selected} multi={q.kind === "multi"} onClick={toggle} />
-                  </div>
+                  <OptionCard key={o.id} option={o} selected={!!selected} multi={q.kind === "multi"} onClick={toggle} />
                 );
               })}
             </div>
@@ -232,30 +234,44 @@ function OptionCard({
   return (
     <button
       onClick={onClick}
-      className={`group text-left rounded-sm overflow-hidden border-2 transition-all w-full ${
+      className={`group text-left rounded-sm overflow-hidden border-2 transition-all w-full relative ${
         selected ? "border-accent shadow-lg" : "border-transparent hover:border-border"
       }`}
     >
-      <div className="aspect-[4/3] bg-muted relative overflow-hidden">
-        {option.image_url && (
+      {option.image_url ? (
+        <div className="aspect-[4/3] bg-muted relative overflow-hidden">
           <img
             src={option.image_url}
             alt={option.label}
             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
             loading="lazy"
           />
-        )}
-        {selected && (
-          <div className={`absolute top-3 right-3 w-9 h-9 ${multi ? "rounded-sm" : "rounded-full"} bg-accent text-accent-foreground flex items-center justify-center shadow-md`}>
-            <Check className="w-5 h-5" />
-          </div>
-        )}
-      </div>
-      <div className="p-3 bg-card">
+          {selected && (
+            <div className={`absolute top-3 right-3 w-9 h-9 ${multi ? "rounded-sm" : "rounded-full"} bg-accent text-accent-foreground flex items-center justify-center shadow-md`}>
+              <Check className="w-5 h-5" />
+            </div>
+          )}
+        </div>
+      ) : selected ? (
+        <div className={`absolute top-3 right-3 w-7 h-7 ${multi ? "rounded-sm" : "rounded-full"} bg-accent text-accent-foreground flex items-center justify-center shadow-md`}>
+          <Check className="w-4 h-4" />
+        </div>
+      ) : null}
+      <div className={`p-3 bg-card ${option.image_url ? "" : "min-h-20 flex items-center"}`}>
         <p className="font-display text-sm md:text-base leading-snug truncate">{option.label}</p>
       </div>
     </button>
   );
+}
+
+function parseQuestionDescription(description: string | null) {
+  if (!description) return { section: null as string | null, description: "" };
+  const match = description.match(/^\[section:(.+?)\]\s*\n?/);
+  if (!match) return { section: null as string | null, description };
+  return {
+    section: match[1].trim(),
+    description: description.slice(match[0].length).trim(),
+  };
 }
 
 function CenterMsg({ children }: { children: React.ReactNode }) {

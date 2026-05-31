@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import {
   createBriefing,
+  createOption,
   createQuestion,
   deleteQuestion,
   getLibraryBriefingContent,
@@ -24,9 +25,9 @@ export const Route = createFileRoute("/library")({
 });
 
 type LibraryQuestion = Question & { options: QuestionOption[] };
-type ModuleKey = Question["kind"];
+type QuestionPreset = Question["kind"] | "yesno";
 
-const moduleLabels: Record<ModuleKey, string> = {
+const moduleLabels: Record<Question["kind"], string> = {
   single: "Escolhas visuais",
   multi: "Seleções múltiplas",
   text: "Perguntas abertas",
@@ -38,7 +39,7 @@ function LibraryPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [newTitle, setNewTitle] = useState("");
-  const [newKind, setNewKind] = useState<Question["kind"]>("single");
+  const [newPreset, setNewPreset] = useState<QuestionPreset>("single");
   const [clientName, setClientName] = useState("");
   const [creatingQuestion, setCreatingQuestion] = useState(false);
   const [creatingBriefing, setCreatingBriefing] = useState(false);
@@ -57,20 +58,24 @@ function LibraryPage() {
   }, [data]);
 
   const modules = useMemo(() => {
-    return (["single", "multi", "text"] as ModuleKey[])
-      .map((kind) => ({
-        kind,
-        title: moduleLabels[kind],
-        questions: questions.filter((question) => question.kind === kind),
-      }))
-      .filter((module) => module.questions.length > 0);
+    const grouped = new Map<string, { key: string; title: string; questions: LibraryQuestion[] }>();
+
+    for (const question of questions) {
+      const section = parseQuestionSection(question.description);
+      const key = section.title ? `section:${section.title}` : `kind:${question.kind}`;
+      const title = section.title || moduleLabels[question.kind];
+      if (!grouped.has(key)) grouped.set(key, { key, title, questions: [] });
+      grouped.get(key)!.questions.push(question);
+    }
+
+    return Array.from(grouped.values());
   }, [questions]);
 
   useEffect(() => {
     setCollapsed((current) => {
       const next = { ...current };
       for (const module of modules) {
-        if (!(module.kind in next)) next[module.kind] = true;
+        if (!(module.key in next)) next[module.key] = true;
       }
       return next;
     });
@@ -93,12 +98,17 @@ function LibraryPage() {
     const title = newTitle.trim() || "Nova pergunta da biblioteca";
     setCreatingQuestion(true);
     try {
-      await createQuestion({
+      const kind: Question["kind"] = newPreset === "yesno" ? "single" : newPreset;
+      const question = await createQuestion({
         briefing_id: data!.briefing.id,
         order_index: questions.length,
         title,
-        kind: newKind,
+        kind,
       });
+      if (newPreset === "yesno") {
+        await createOption({ question_id: question.id, order_index: 0, label: "Sim", tag: "sim" });
+        await createOption({ question_id: question.id, order_index: 1, label: "Não", tag: "não" });
+      }
       setNewTitle("");
       await refetch();
       toast.success("Pergunta criada na biblioteca");
@@ -213,11 +223,12 @@ function LibraryPage() {
             placeholder="Título da nova pergunta"
             className="h-10"
           />
-          <Select value={newKind} onValueChange={(value) => setNewKind(value as Question["kind"])}>
+          <Select value={newPreset} onValueChange={(value) => setNewPreset(value as QuestionPreset)}>
             <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
             <SelectContent>
+              <SelectItem value="yesno">Sim / Não</SelectItem>
               <SelectItem value="single">Escolha única</SelectItem>
-              <SelectItem value="multi">Múltipla escolha</SelectItem>
+              <SelectItem value="multi">Múltipla escolha em texto</SelectItem>
               <SelectItem value="text">Resposta em texto</SelectItem>
             </SelectContent>
           </Select>
@@ -240,13 +251,13 @@ function LibraryPage() {
           {modules.map((module) => {
             const ids = module.questions.map((question) => question.id);
             const selectedCount = ids.filter((id) => selectedSet.has(id)).length;
-            const isCollapsed = collapsed[module.kind] ?? true;
+            const isCollapsed = collapsed[module.key] ?? true;
             return (
-              <section key={module.kind} className="border border-border/60 rounded-sm bg-card overflow-hidden">
+              <section key={module.key} className="border border-border/60 rounded-sm bg-card overflow-hidden">
                 <div className="p-4 flex items-center justify-between gap-4 flex-wrap">
                   <button
                     type="button"
-                    onClick={() => setCollapsed((current) => ({ ...current, [module.kind]: !isCollapsed }))}
+                    onClick={() => setCollapsed((current) => ({ ...current, [module.key]: !isCollapsed }))}
                     className="flex items-center gap-3 text-left"
                   >
                     {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -303,6 +314,7 @@ function LibraryQuestionRow({
   checked: boolean;
   onCheckedChange: (checked: boolean) => void;
 }) {
+  const questionMeta = parseQuestionSection(question.description);
   return (
     <article className="p-4 grid gap-4 md:grid-cols-[28px_1fr_auto] items-start hover:bg-muted/30 transition-colors">
       <Checkbox checked={checked} onCheckedChange={(value) => onCheckedChange(value === true)} className="mt-1" />
@@ -313,8 +325,8 @@ function LibraryQuestionRow({
           <span className="text-xs text-muted-foreground">{question.options.length} opções</span>
         </div>
         <h2 className="font-display text-xl leading-tight mt-2">{question.title}</h2>
-        {question.description && (
-          <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{question.description}</p>
+        {questionMeta.description && (
+          <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{questionMeta.description}</p>
         )}
         {question.options.length > 0 && (
           <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
@@ -334,4 +346,14 @@ function LibraryQuestionRow({
       </div>
     </article>
   );
+}
+
+function parseQuestionSection(description: string | null) {
+  if (!description) return { title: null as string | null, description: "" };
+  const match = description.match(/^\[section:(.+?)\]\s*\n?/);
+  if (!match) return { title: null as string | null, description };
+  return {
+    title: match[1].trim(),
+    description: description.slice(match[0].length).trim(),
+  };
 }
