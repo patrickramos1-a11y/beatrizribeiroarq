@@ -14,7 +14,198 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      briefings: {
+        Row: {
+          client_name: string
+          completed_at: string | null
+          created_at: string
+          id: string
+          intro: string | null
+          project_type: string
+          public_token: string
+          status: string
+          title: string
+        }
+        Insert: {
+          client_name: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          intro?: string | null
+          project_type: string
+          public_token?: string
+          status?: string
+          title: string
+        }
+        Update: {
+          client_name?: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          intro?: string | null
+          project_type?: string
+          public_token?: string
+          status?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      question_options: {
+        Row: {
+          id: string
+          image_url: string | null
+          interpretation: string | null
+          label: string
+          order_index: number
+          question_id: string
+          tag: string | null
+        }
+        Insert: {
+          id?: string
+          image_url?: string | null
+          interpretation?: string | null
+          label: string
+          order_index?: number
+          question_id: string
+          tag?: string | null
+        }
+        Update: {
+          id?: string
+          image_url?: string | null
+          interpretation?: string | null
+          label?: string
+          order_index?: number
+          question_id?: string
+          tag?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_options_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      questions: {
+        Row: {
+          allow_comment: boolean
+          briefing_id: string
+          description: string | null
+          id: string
+          kind: string
+          order_index: number
+          title: string
+        }
+        Insert: {
+          allow_comment?: boolean
+          briefing_id: string
+          description?: string | null
+          id?: string
+          kind?: string
+          order_index?: number
+          title: string
+        }
+        Update: {
+          allow_comment?: boolean
+          briefing_id?: string
+          description?: string | null
+          id?: string
+          kind?: string
+          order_index?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "questions_briefing_id_fkey"
+            columns: ["briefing_id"]
+            isOneToOne: false
+            referencedRelation: "briefings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reports: {
+        Row: {
+          ai_text: string | null
+          briefing_id: string
+          edited_text: string | null
+          generated_at: string
+          id: string
+          style_profile: Json | null
+        }
+        Insert: {
+          ai_text?: string | null
+          briefing_id: string
+          edited_text?: string | null
+          generated_at?: string
+          id?: string
+          style_profile?: Json | null
+        }
+        Update: {
+          ai_text?: string | null
+          briefing_id?: string
+          edited_text?: string | null
+          generated_at?: string
+          id?: string
+          style_profile?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reports_briefing_id_fkey"
+            columns: ["briefing_id"]
+            isOneToOne: true
+            referencedRelation: "briefings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      responses: {
+        Row: {
+          briefing_id: string
+          comment: string | null
+          created_at: string
+          id: string
+          question_id: string
+          selected_option_ids: Json
+          text_answer: string | null
+        }
+        Insert: {
+          briefing_id: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          question_id: string
+          selected_option_ids?: Json
+          text_answer?: string | null
+        }
+        Update: {
+          briefing_id?: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          question_id?: string
+          selected_option_ids?: Json
+          text_answer?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "responses_briefing_id_fkey"
+            columns: ["briefing_id"]
+            isOneToOne: false
+            referencedRelation: "briefings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "responses_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
