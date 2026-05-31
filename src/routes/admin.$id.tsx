@@ -62,17 +62,33 @@ function AdminDetail() {
     refetchReport();
   };
 
-  const onExport = () => {
+  const onExport = async () => {
     const text = edited || report?.ai_text || "";
     if (!text) {
       toast.error("Gere o relatório primeiro");
       return;
     }
-    exportReportPdf({
+    const selectedImages = questions.flatMap((q) => {
+      const r = responses.find((x) => x.question_id === q.id);
+      if (!r || q.kind === "text") return [];
+      return r.selected_option_ids
+        .map((oid) => options.find((o) => o.id === oid))
+        .filter((o): o is NonNullable<typeof o> => !!o && !!o.image_url)
+        .map((o) => ({
+          questionTitle: q.title,
+          label: o.label,
+          tag: o.tag,
+          interpretation: o.interpretation,
+          imageUrl: o.image_url as string,
+        }));
+    });
+    toast.info("Gerando PDF…");
+    await exportReportPdf({
       clientName: briefing.client_name,
       projectType: briefing.project_type,
       reportText: text,
       styleProfile: report?.style_profile,
+      selectedImages,
     });
   };
 

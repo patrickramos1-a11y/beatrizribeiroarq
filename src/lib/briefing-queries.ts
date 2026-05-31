@@ -109,6 +109,12 @@ export async function saveResponse(input: {
     .eq("question_id", input.question_id);
   const { error } = await supabase.from("responses").insert(input);
   if (error) throw error;
+  // Mark briefing as in_progress on first answer
+  await supabase
+    .from("briefings")
+    .update({ status: "in_progress" })
+    .eq("id", input.briefing_id)
+    .eq("status", "sent");
 }
 
 export async function completeBriefing(briefing_id: string) {
