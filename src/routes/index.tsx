@@ -85,27 +85,32 @@ function AdminDashboard() {
             </p>
           </div>
 
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="outline" size="lg" className="gap-2">
-                <RotateCcw className="w-4 h-4" /> Resetar plataforma
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle className="font-display text-2xl">Resetar plataforma?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Isso apaga todas as <strong>respostas</strong> e <strong>relatórios</strong> dos
-                  briefings, devolvendo-os ao estado original (perguntas e imagens permanecem).
-                  Esta ação não pode ser desfeita.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={doReset}>Sim, resetar</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <div className="flex gap-2 flex-wrap">
+            <Button size="lg" onClick={newBriefing} className="gap-2">
+              <Plus className="w-4 h-4" /> Novo briefing
+            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" size="lg" className="gap-2">
+                  <RotateCcw className="w-4 h-4" /> Resetar
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="font-display text-2xl">Resetar plataforma?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Isso apaga todas as <strong>respostas</strong> e <strong>relatórios</strong> dos
+                    briefings, devolvendo-os ao estado original (perguntas e imagens permanecem).
+                    Esta ação não pode ser desfeita.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={doReset}>Sim, resetar</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         </div>
       </section>
 
