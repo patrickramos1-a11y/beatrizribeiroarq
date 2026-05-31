@@ -86,7 +86,7 @@ function PublicBriefing() {
         }
         await completeBriefing(briefing.id);
         await qc.invalidateQueries({ queryKey: ["briefings"] });
-        navigate({ to: "/briefing/$token/enviado", params: { token } });
+        navigate({ to: "/briefing/$token/enviado", params: { token }, search: { preview: undefined } });
       }
     } catch (e: any) {
       toast.error("Erro ao salvar", { description: e.message });
