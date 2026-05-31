@@ -101,9 +101,13 @@ export async function saveResponse(input: {
   text_answer?: string | null;
   comment?: string | null;
 }) {
-  const { error } = await supabase
+  // Delete existing then insert (no unique constraint on briefing_id,question_id)
+  await supabase
     .from("responses")
-    .upsert(input, { onConflict: "briefing_id,question_id" });
+    .delete()
+    .eq("briefing_id", input.briefing_id)
+    .eq("question_id", input.question_id);
+  const { error } = await supabase.from("responses").insert(input);
   if (error) throw error;
 }
 
@@ -135,6 +139,15 @@ export async function resetPlatform() {
 }
 
 export async function deleteBriefing(id: string) {
+  // cascading delete: options, questions, responses, reports
+  const { data: qs } = await supabase.from("questions").select("id").eq("briefing_id", id);
+  const qIds = (qs ?? []).map((q) => q.id);
+  if (qIds.length) {
+    await supabase.from("question_options").delete().in("question_id", qIds);
+  }
+  await supabase.from("questions").delete().eq("briefing_id", id);
+  await supabase.from("responses").delete().eq("briefing_id", id);
+  await supabase.from("reports").delete().eq("briefing_id", id);
   const { error } = await supabase.from("briefings").delete().eq("id", id);
   if (error) throw error;
 }
@@ -182,8 +195,15 @@ export async function updateQuestion(id: string, patch: Partial<Question>) {
 }
 
 export async function deleteQuestion(id: string) {
+  await supabase.from("question_options").delete().eq("question_id", id);
   const { error } = await supabase.from("questions").delete().eq("id", id);
   if (error) throw error;
+}
+
+export async function reorderQuestions(updates: { id: string; order_index: number }[]) {
+  for (const u of updates) {
+    await supabase.from("questions").update({ order_index: u.order_index }).eq("id", u.id);
+  }
 }
 
 export async function createOption(input: {
@@ -223,4 +243,61 @@ export async function uploadBriefingImage(file: File): Promise<string> {
   if (error) throw error;
   const { data } = supabase.storage.from("briefing-images").getPublicUrl(path);
   return data.publicUrl;
+}
+
+/** Template library: list all questions across briefings with their options. */
+export async function listQuestionTemplates(excludeBriefingId?: string) {
+  let query = supabase.from("questions").select("*, briefings(client_name, title)").order("title");
+  const { data: questions, error } = await query;
+  if (error) throw error;
+  const filtered = (questions ?? []).filter((q: any) => q.briefing_id !== excludeBriefingId);
+  const qIds = filtered.map((q: any) => q.id);
+  const { data: options } = qIds.length
+    ? await supabase.from("question_options").select("*").in("question_id", qIds).order("order_index")
+    : { data: [] };
+  return filtered.map((q: any) => ({
+    ...q,
+    briefing_name: q.briefings?.client_name ?? "—",
+    options: (options ?? []).filter((o: any) => o.question_id === q.id) as QuestionOption[],
+  })) as (Question & { briefing_name: string; options: QuestionOption[] })[];
+}
+
+/** Clone a template question (with its options) into the target briefing. */
+export async function importQuestionTemplate(opts: {
+  briefing_id: string;
+  template_question_id: string;
+  next_order_index: number;
+}) {
+  const { data: src } = await supabase
+    .from("questions")
+    .select("*")
+    .eq("id", opts.template_question_id)
+    .maybeSingle();
+  if (!src) throw new Error("Template não encontrado");
+  const { data: srcOptions } = await supabase
+    .from("question_options")
+    .select("*")
+    .eq("question_id", opts.template_question_id)
+    .order("order_index");
+
+  const newQ = await createQuestion({
+    briefing_id: opts.briefing_id,
+    order_index: opts.next_order_index,
+    title: src.title,
+    description: src.description,
+    kind: src.kind as Question["kind"],
+    allow_comment: src.allow_comment,
+  });
+
+  for (const o of srcOptions ?? []) {
+    await createOption({
+      question_id: newQ.id,
+      order_index: o.order_index,
+      label: o.label,
+      image_url: o.image_url,
+      tag: o.tag,
+      interpretation: o.interpretation,
+    });
+  }
+  return newQ;
 }
