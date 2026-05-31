@@ -30,6 +30,7 @@ const statusLabel: Record<string, string> = {
 
 function AdminDashboard() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const { data: briefings = [], isLoading } = useQuery({
     queryKey: ["briefings"],
     queryFn: listBriefings,
@@ -39,6 +40,21 @@ function AdminDashboard() {
     const url = `${window.location.origin}/briefing/${token}`;
     navigator.clipboard.writeText(url);
     toast.success("Link copiado", { description: url });
+  };
+
+  const newBriefing = async () => {
+    try {
+      const b = await createBriefing({
+        client_name: "Novo cliente",
+        project_type: "Projeto residencial",
+        title: "Briefing visual",
+        intro: "Bem-vindo(a) a uma jornada visual para descobrirmos juntos a alma do seu projeto.",
+      });
+      await qc.invalidateQueries({ queryKey: ["briefings"] });
+      navigate({ to: "/editor/$id", params: { id: b.id } });
+    } catch (e: any) {
+      toast.error("Erro", { description: e.message });
+    }
   };
 
   const doReset = async () => {
