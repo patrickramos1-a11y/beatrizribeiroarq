@@ -139,7 +139,7 @@ function PublicBriefing() {
               className="text-base"
             />
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div className="flex gap-3 md:gap-4 w-full">
               {qOptions.map((o) => {
                 const selected = ans?.sel.includes(o.id);
                 const toggle = () => {
@@ -151,7 +151,11 @@ function PublicBriefing() {
                     });
                   }
                 };
-                return <OptionCard key={o.id} option={o} selected={!!selected} onClick={toggle} />;
+                return (
+                  <div key={o.id} className="flex-1 min-w-0">
+                    <OptionCard option={o} selected={!!selected} onClick={toggle} />
+                  </div>
+                );
               })}
             </div>
           )}
