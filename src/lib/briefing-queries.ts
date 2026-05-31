@@ -138,3 +138,89 @@ export async function deleteBriefing(id: string) {
   const { error } = await supabase.from("briefings").delete().eq("id", id);
   if (error) throw error;
 }
+
+export async function createBriefing(input: {
+  client_name: string;
+  project_type: string;
+  title: string;
+  intro?: string | null;
+}) {
+  const { data, error } = await supabase
+    .from("briefings")
+    .insert({ ...input, status: "draft" })
+    .select()
+    .single();
+  if (error) throw error;
+  return data as Briefing;
+}
+
+export async function updateBriefing(id: string, patch: Partial<Briefing>) {
+  const { error } = await supabase.from("briefings").update(patch).eq("id", id);
+  if (error) throw error;
+}
+
+export async function createQuestion(input: {
+  briefing_id: string;
+  order_index: number;
+  title: string;
+  description?: string | null;
+  kind?: "single" | "multi" | "text";
+  allow_comment?: boolean;
+}) {
+  const { data, error } = await supabase
+    .from("questions")
+    .insert({ kind: "single", allow_comment: true, ...input })
+    .select()
+    .single();
+  if (error) throw error;
+  return data as Question;
+}
+
+export async function updateQuestion(id: string, patch: Partial<Question>) {
+  const { error } = await supabase.from("questions").update(patch).eq("id", id);
+  if (error) throw error;
+}
+
+export async function deleteQuestion(id: string) {
+  const { error } = await supabase.from("questions").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export async function createOption(input: {
+  question_id: string;
+  order_index: number;
+  label: string;
+  image_url?: string | null;
+  tag?: string | null;
+  interpretation?: string | null;
+}) {
+  const { data, error } = await supabase
+    .from("question_options")
+    .insert(input)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as QuestionOption;
+}
+
+export async function updateOption(id: string, patch: Partial<QuestionOption>) {
+  const { error } = await supabase.from("question_options").update(patch).eq("id", id);
+  if (error) throw error;
+}
+
+export async function deleteOption(id: string) {
+  const { error } = await supabase.from("question_options").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export async function uploadBriefingImage(file: File): Promise<string> {
+  const ext = file.name.split(".").pop() || "jpg";
+  const path = `${crypto.randomUUID()}.${ext}`;
+  const { error } = await supabase.storage.from("briefing-images").upload(path, file, {
+    cacheControl: "3600",
+    upsert: false,
+  });
+  if (error) throw error;
+  const { data } = supabase.storage.from("briefing-images").getPublicUrl(path);
+  return data.publicUrl;
+}

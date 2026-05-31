@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as EditorIdRouteImport } from './routes/editor.$id'
 import { Route as BriefingTokenRouteImport } from './routes/briefing.$token'
 import { Route as AdminIdRouteImport } from './routes/admin.$id'
 import { Route as BriefingTokenEnviadoRouteImport } from './routes/briefing.$token.enviado'
@@ -17,6 +18,11 @@ import { Route as BriefingTokenEnviadoRouteImport } from './routes/briefing.$tok
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EditorIdRoute = EditorIdRouteImport.update({
+  id: '/editor/$id',
+  path: '/editor/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BriefingTokenRoute = BriefingTokenRouteImport.update({
@@ -39,12 +45,14 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin/$id': typeof AdminIdRoute
   '/briefing/$token': typeof BriefingTokenRouteWithChildren
+  '/editor/$id': typeof EditorIdRoute
   '/briefing/$token/enviado': typeof BriefingTokenEnviadoRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin/$id': typeof AdminIdRoute
   '/briefing/$token': typeof BriefingTokenRouteWithChildren
+  '/editor/$id': typeof EditorIdRoute
   '/briefing/$token/enviado': typeof BriefingTokenEnviadoRoute
 }
 export interface FileRoutesById {
@@ -52,6 +60,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin/$id': typeof AdminIdRoute
   '/briefing/$token': typeof BriefingTokenRouteWithChildren
+  '/editor/$id': typeof EditorIdRoute
   '/briefing/$token/enviado': typeof BriefingTokenEnviadoRoute
 }
 export interface FileRouteTypes {
@@ -60,14 +69,21 @@ export interface FileRouteTypes {
     | '/'
     | '/admin/$id'
     | '/briefing/$token'
+    | '/editor/$id'
     | '/briefing/$token/enviado'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin/$id' | '/briefing/$token' | '/briefing/$token/enviado'
+  to:
+    | '/'
+    | '/admin/$id'
+    | '/briefing/$token'
+    | '/editor/$id'
+    | '/briefing/$token/enviado'
   id:
     | '__root__'
     | '/'
     | '/admin/$id'
     | '/briefing/$token'
+    | '/editor/$id'
     | '/briefing/$token/enviado'
   fileRoutesById: FileRoutesById
 }
@@ -75,6 +91,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminIdRoute: typeof AdminIdRoute
   BriefingTokenRoute: typeof BriefingTokenRouteWithChildren
+  EditorIdRoute: typeof EditorIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -84,6 +101,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/editor/$id': {
+      id: '/editor/$id'
+      path: '/editor/$id'
+      fullPath: '/editor/$id'
+      preLoaderRoute: typeof EditorIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/briefing/$token': {
@@ -126,6 +150,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminIdRoute: AdminIdRoute,
   BriefingTokenRoute: BriefingTokenRouteWithChildren,
+  EditorIdRoute: EditorIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

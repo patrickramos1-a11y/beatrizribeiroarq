@@ -124,7 +124,7 @@ function PublicBriefing() {
         </div>
       </header>
 
-      <main className="flex-1 mx-auto max-w-5xl w-full px-6 py-12">
+      <main className="flex-1 mx-auto max-w-7xl w-full px-6 py-12">
         <span className="eyebrow">{briefing.project_type}</span>
         <h2 className="font-display text-3xl md:text-4xl mt-3 leading-tight">{q.title}</h2>
         {q.description && <p className="text-muted-foreground mt-3 max-w-2xl">{q.description}</p>}
@@ -139,7 +139,7 @@ function PublicBriefing() {
               className="text-base"
             />
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div className="flex gap-3 md:gap-4 w-full">
               {qOptions.map((o) => {
                 const selected = ans?.sel.includes(o.id);
                 const toggle = () => {
@@ -151,7 +151,11 @@ function PublicBriefing() {
                     });
                   }
                 };
-                return <OptionCard key={o.id} option={o} selected={!!selected} onClick={toggle} />;
+                return (
+                  <div key={o.id} className="flex-1 min-w-0">
+                    <OptionCard option={o} selected={!!selected} onClick={toggle} />
+                  </div>
+                );
               })}
             </div>
           )}
@@ -211,8 +215,8 @@ function OptionCard({ option, selected, onClick }: { option: QuestionOption; sel
           </div>
         )}
       </div>
-      <div className="p-4 bg-card">
-        <p className="font-display text-lg leading-snug">{option.label}</p>
+      <div className="p-3 bg-card">
+        <p className="font-display text-sm md:text-base leading-snug truncate">{option.label}</p>
       </div>
     </button>
   );

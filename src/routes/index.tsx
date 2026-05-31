@@ -1,9 +1,9 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { listBriefings, resetPlatform } from "@/lib/briefing-queries";
+import { listBriefings, resetPlatform, createBriefing } from "@/lib/briefing-queries";
 import { PageShell } from "@/components/Brand";
 import { Button } from "@/components/ui/button";
-import { Copy, RotateCcw, ArrowUpRight, FileText } from "lucide-react";
+import { Copy, RotateCcw, ArrowUpRight, FileText, Plus, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -30,6 +30,7 @@ const statusLabel: Record<string, string> = {
 
 function AdminDashboard() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const { data: briefings = [], isLoading } = useQuery({
     queryKey: ["briefings"],
     queryFn: listBriefings,
@@ -39,6 +40,21 @@ function AdminDashboard() {
     const url = `${window.location.origin}/briefing/${token}`;
     navigator.clipboard.writeText(url);
     toast.success("Link copiado", { description: url });
+  };
+
+  const newBriefing = async () => {
+    try {
+      const b = await createBriefing({
+        client_name: "Novo cliente",
+        project_type: "Projeto residencial",
+        title: "Briefing visual",
+        intro: "Bem-vindo(a) a uma jornada visual para descobrirmos juntos a alma do seu projeto.",
+      });
+      await qc.invalidateQueries({ queryKey: ["briefings"] });
+      navigate({ to: "/editor/$id", params: { id: b.id } });
+    } catch (e: any) {
+      toast.error("Erro", { description: e.message });
+    }
   };
 
   const doReset = async () => {
@@ -69,27 +85,32 @@ function AdminDashboard() {
             </p>
           </div>
 
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="outline" size="lg" className="gap-2">
-                <RotateCcw className="w-4 h-4" /> Resetar plataforma
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle className="font-display text-2xl">Resetar plataforma?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Isso apaga todas as <strong>respostas</strong> e <strong>relatórios</strong> dos
-                  briefings, devolvendo-os ao estado original (perguntas e imagens permanecem).
-                  Esta ação não pode ser desfeita.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={doReset}>Sim, resetar</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <div className="flex gap-2 flex-wrap">
+            <Button size="lg" onClick={newBriefing} className="gap-2">
+              <Plus className="w-4 h-4" /> Novo briefing
+            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" size="lg" className="gap-2">
+                  <RotateCcw className="w-4 h-4" /> Resetar
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="font-display text-2xl">Resetar plataforma?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Isso apaga todas as <strong>respostas</strong> e <strong>relatórios</strong> dos
+                    briefings, devolvendo-os ao estado original (perguntas e imagens permanecem).
+                    Esta ação não pode ser desfeita.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={doReset}>Sim, resetar</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         </div>
       </section>
 
@@ -119,6 +140,11 @@ function AdminDashboard() {
                   <Button size="sm" variant="ghost" onClick={() => copyLink(b.public_token)} className="gap-1.5">
                     <Copy className="w-3.5 h-3.5" /> Copiar
                   </Button>
+                  <Link to="/editor/$id" params={{ id: b.id }}>
+                    <Button size="sm" variant="outline" className="gap-1.5">
+                      <Pencil className="w-3.5 h-3.5" /> Editar
+                    </Button>
+                  </Link>
                   <Link to="/briefing/$token" params={{ token: b.public_token }}>
                     <Button size="sm" variant="outline" className="gap-1.5">
                       Abrir <ArrowUpRight className="w-3.5 h-3.5" />
