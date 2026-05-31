@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useSearch, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import {
@@ -6,18 +6,24 @@ import {
   type Question, type QuestionOption,
 } from "@/lib/briefing-queries";
 import { Brand } from "@/components/Brand";
+import { KindBadge } from "@/components/KindBadge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
-import { Check, ArrowLeft, ArrowRight } from "lucide-react";
+import { Check, ArrowLeft, ArrowRight, Eye } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/briefing/$token")({
+  validateSearch: (s: Record<string, unknown>) => ({
+    preview: s.preview === 1 || s.preview === "1" ? 1 : undefined,
+  }),
   component: PublicBriefing,
 });
 
 function PublicBriefing() {
   const { token } = Route.useParams();
+  const search = useSearch({ from: "/briefing/$token" }) as { preview?: 1 };
+  const isPreview = !!search.preview;
   const navigate = useNavigate();
   const qc = useQueryClient();
 
@@ -31,7 +37,7 @@ function PublicBriefing() {
   const [answers, setAnswers] = useState<Record<string, { sel: string[]; text: string; comment: string }>>({});
 
   useEffect(() => {
-    if (data?.responses) {
+    if (data?.responses && !isPreview) {
       const seed: typeof answers = {};
       for (const r of data.responses) {
         seed[r.question_id] = {
@@ -42,7 +48,7 @@ function PublicBriefing() {
       }
       setAnswers(seed);
     }
-  }, [data?.responses]);
+  }, [data?.responses, isPreview]);
 
   if (isLoading) return <CenterMsg>Carregando…</CenterMsg>;
   if (error || !data) return <CenterMsg>Briefing não encontrado.</CenterMsg>;
@@ -57,6 +63,7 @@ function PublicBriefing() {
   };
 
   const persist = async () => {
+    if (isPreview) return;
     if (!q || !ans) return;
     await saveResponse({
       briefing_id: briefing.id,
@@ -72,6 +79,11 @@ function PublicBriefing() {
       await persist();
       if (step + 1 < questions.length) setStep(step + 1);
       else {
+        if (isPreview) {
+          toast.success("Pré-visualização concluída", { description: "Nenhuma resposta foi gravada." });
+          navigate({ to: "/editor/$id", params: { id: briefing.id } });
+          return;
+        }
         await completeBriefing(briefing.id);
         await qc.invalidateQueries({ queryKey: ["briefings"] });
         navigate({ to: "/briefing/$token/enviado", params: { token } });
@@ -81,9 +93,21 @@ function PublicBriefing() {
     }
   };
 
+  const PreviewBanner = () =>
+    isPreview ? (
+      <div className="bg-accent/15 border-b border-accent/30 text-accent text-xs px-6 py-2.5 text-center font-medium tracking-wide uppercase flex items-center justify-center gap-2">
+        <Eye className="w-3.5 h-3.5" />
+        Modo pré-visualização · nada será salvo ·{" "}
+        <Link to="/editor/$id" params={{ id: briefing.id }} className="underline">
+          voltar ao editor
+        </Link>
+      </div>
+    ) : null;
+
   if (intro) {
     return (
       <div className="min-h-screen bg-background">
+        <PreviewBanner />
         <header className="border-b border-border/60 px-6 py-6">
           <div className="mx-auto max-w-5xl"><Brand /></div>
         </header>
@@ -111,6 +135,7 @@ function PublicBriefing() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <PreviewBanner />
       <header className="border-b border-border/60 px-6 py-5 sticky top-0 z-10 bg-background/95 backdrop-blur">
         <div className="mx-auto max-w-5xl flex items-center justify-between gap-6">
           <Brand subtle />
@@ -125,7 +150,16 @@ function PublicBriefing() {
       </header>
 
       <main className="flex-1 mx-auto max-w-7xl w-full px-6 py-12">
-        <span className="eyebrow">{briefing.project_type}</span>
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className="eyebrow">{briefing.project_type}</span>
+          <KindBadge kind={q.kind} size="xs" />
+          {q.kind === "multi" && (
+            <span className="text-xs text-muted-foreground italic">Selecione quantas quiser</span>
+          )}
+          {q.kind === "single" && (
+            <span className="text-xs text-muted-foreground italic">Escolha apenas uma</span>
+          )}
+        </div>
         <h2 className="font-display text-3xl md:text-4xl mt-3 leading-tight">{q.title}</h2>
         {q.description && <p className="text-muted-foreground mt-3 max-w-2xl">{q.description}</p>}
 
@@ -153,7 +187,7 @@ function PublicBriefing() {
                 };
                 return (
                   <div key={o.id} className="flex-1 min-w-0">
-                    <OptionCard option={o} selected={!!selected} onClick={toggle} />
+                    <OptionCard option={o} selected={!!selected} multi={q.kind === "multi"} onClick={toggle} />
                   </div>
                 );
               })}
@@ -183,7 +217,7 @@ function PublicBriefing() {
             <ArrowLeft className="w-4 h-4" /> Voltar
           </Button>
           <Button size="lg" onClick={onNext} className="gap-2 px-8">
-            {step + 1 === questions.length ? "Enviar briefing" : "Próxima"}
+            {step + 1 === questions.length ? (isPreview ? "Finalizar pré-visualização" : "Enviar briefing") : "Próxima"}
             <ArrowRight className="w-4 h-4" />
           </Button>
         </div>
@@ -192,11 +226,13 @@ function PublicBriefing() {
   );
 }
 
-function OptionCard({ option, selected, onClick }: { option: QuestionOption; selected: boolean; onClick: () => void }) {
+function OptionCard({
+  option, selected, multi, onClick,
+}: { option: QuestionOption; selected: boolean; multi: boolean; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className={`group text-left rounded-sm overflow-hidden border-2 transition-all ${
+      className={`group text-left rounded-sm overflow-hidden border-2 transition-all w-full ${
         selected ? "border-accent shadow-lg" : "border-transparent hover:border-border"
       }`}
     >
@@ -210,7 +246,7 @@ function OptionCard({ option, selected, onClick }: { option: QuestionOption; sel
           />
         )}
         {selected && (
-          <div className="absolute top-3 right-3 w-9 h-9 rounded-full bg-accent text-accent-foreground flex items-center justify-center shadow-md">
+          <div className={`absolute top-3 right-3 w-9 h-9 ${multi ? "rounded-sm" : "rounded-full"} bg-accent text-accent-foreground flex items-center justify-center shadow-md`}>
             <Check className="w-5 h-5" />
           </div>
         )}

@@ -2,8 +2,9 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { listBriefings, resetPlatform, createBriefing } from "@/lib/briefing-queries";
 import { PageShell } from "@/components/Brand";
+import { StatusBadge } from "@/components/KindBadge";
 import { Button } from "@/components/ui/button";
-import { Copy, RotateCcw, ArrowUpRight, FileText, Plus, Pencil } from "lucide-react";
+import { Copy, RotateCcw, ArrowUpRight, FileText, Plus, Pencil, Eye } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -19,14 +20,6 @@ export const Route = createFileRoute("/")({
   }),
   component: AdminDashboard,
 });
-
-const statusLabel: Record<string, string> = {
-  draft: "Rascunho",
-  sent: "Enviado",
-  in_progress: "Em preenchimento",
-  completed: "Concluído",
-  archived: "Arquivado",
-};
 
 function AdminDashboard() {
   const qc = useQueryClient();
@@ -119,45 +112,65 @@ function AdminDashboard() {
       <section className="mx-auto max-w-6xl px-6 py-12">
         {isLoading ? (
           <p className="text-muted-foreground">Carregando…</p>
+        ) : briefings.length === 0 ? (
+          <div className="border border-dashed border-border rounded-sm py-20 text-center">
+            <p className="text-muted-foreground mb-4">Nenhum briefing ainda.</p>
+            <Button onClick={newBriefing} className="gap-2">
+              <Plus className="w-4 h-4" /> Criar o primeiro
+            </Button>
+          </div>
         ) : (
           <div className="grid gap-px bg-border/60 border border-border/60 rounded-sm overflow-hidden">
-            {briefings.map((b) => (
-              <article key={b.id} className="bg-card p-7 grid grid-cols-12 gap-6 items-center hover:bg-muted/40 transition-colors">
-                <div className="col-span-12 md:col-span-5">
-                  <span className="eyebrow">{statusLabel[b.status] ?? b.status}</span>
-                  <h2 className="font-display text-2xl mt-1.5 leading-tight">{b.client_name}</h2>
-                  <p className="text-sm text-muted-foreground mt-1">{b.project_type}</p>
-                </div>
-
-                <div className="col-span-12 md:col-span-4">
-                  <span className="eyebrow">Link do cliente</span>
-                  <div className="mt-1.5 flex items-center gap-2 text-sm font-mono text-muted-foreground truncate">
-                    /briefing/{b.public_token}
+            {briefings.map((b) => {
+              const isCompleted = b.status === "completed";
+              return (
+                <article key={b.id} className="bg-card p-7 grid grid-cols-12 gap-6 items-center hover:bg-muted/40 transition-colors">
+                  <div className="col-span-12 md:col-span-5">
+                    <StatusBadge status={b.status} />
+                    <h2 className="font-display text-2xl mt-2.5 leading-tight">{b.client_name}</h2>
+                    <p className="text-sm text-muted-foreground mt-1">{b.project_type}</p>
                   </div>
-                </div>
 
-                <div className="col-span-12 md:col-span-3 flex flex-wrap gap-2 md:justify-end">
-                  <Button size="sm" variant="ghost" onClick={() => copyLink(b.public_token)} className="gap-1.5">
-                    <Copy className="w-3.5 h-3.5" /> Copiar
-                  </Button>
-                  <Link to="/editor/$id" params={{ id: b.id }}>
-                    <Button size="sm" variant="outline" className="gap-1.5">
-                      <Pencil className="w-3.5 h-3.5" /> Editar
+                  <div className="col-span-12 md:col-span-4">
+                    <span className="eyebrow">Link do cliente</span>
+                    <div className="mt-1.5 flex items-center gap-2 text-sm font-mono text-muted-foreground truncate">
+                      /briefing/{b.public_token.slice(0, 14)}…
+                    </div>
+                  </div>
+
+                  <div className="col-span-12 md:col-span-3 flex flex-wrap gap-2 md:justify-end">
+                    <Button size="sm" variant="ghost" onClick={() => copyLink(b.public_token)} className="gap-1.5">
+                      <Copy className="w-3.5 h-3.5" /> Copiar
                     </Button>
-                  </Link>
-                  <Link to="/briefing/$token" params={{ token: b.public_token }}>
-                    <Button size="sm" variant="outline" className="gap-1.5">
-                      Abrir <ArrowUpRight className="w-3.5 h-3.5" />
-                    </Button>
-                  </Link>
-                  <Link to="/admin/$id" params={{ id: b.id }}>
-                    <Button size="sm" className="gap-1.5">
-                      <FileText className="w-3.5 h-3.5" /> Relatório
-                    </Button>
-                  </Link>
-                </div>
-              </article>
-            ))}
+                    <Link to="/editor/$id" params={{ id: b.id }}>
+                      <Button size="sm" variant="outline" className="gap-1.5">
+                        <Pencil className="w-3.5 h-3.5" /> Editar
+                      </Button>
+                    </Link>
+                    {isCompleted ? (
+                      <Link to="/admin/$id" params={{ id: b.id }}>
+                        <Button size="sm" className="gap-1.5">
+                          <FileText className="w-3.5 h-3.5" /> Ver resultado
+                        </Button>
+                      </Link>
+                    ) : (
+                      <>
+                        <Link to="/briefing/$token" params={{ token: b.public_token }} search={{ preview: 1 } as any}>
+                          <Button size="sm" variant="outline" className="gap-1.5">
+                            <Eye className="w-3.5 h-3.5" /> Testar
+                          </Button>
+                        </Link>
+                        <Link to="/admin/$id" params={{ id: b.id }}>
+                          <Button size="sm" className="gap-1.5">
+                            <ArrowUpRight className="w-3.5 h-3.5" /> Respostas
+                          </Button>
+                        </Link>
+                      </>
+                    )}
+                  </div>
+                </article>
+              );
+            })}
           </div>
         )}
       </section>
