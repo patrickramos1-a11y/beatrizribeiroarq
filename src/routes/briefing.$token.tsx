@@ -215,8 +215,8 @@ function OptionCard({ option, selected, onClick }: { option: QuestionOption; sel
           </div>
         )}
       </div>
-      <div className="p-4 bg-card">
-        <p className="font-display text-lg leading-snug">{option.label}</p>
+      <div className="p-3 bg-card">
+        <p className="font-display text-sm md:text-base leading-snug truncate">{option.label}</p>
       </div>
     </button>
   );
