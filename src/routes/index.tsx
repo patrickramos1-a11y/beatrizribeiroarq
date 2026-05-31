@@ -1,9 +1,9 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { listBriefings, resetPlatform } from "@/lib/briefing-queries";
+import { listBriefings, resetPlatform, createBriefing } from "@/lib/briefing-queries";
 import { PageShell } from "@/components/Brand";
 import { Button } from "@/components/ui/button";
-import { Copy, RotateCcw, ArrowUpRight, FileText } from "lucide-react";
+import { Copy, RotateCcw, ArrowUpRight, FileText, Plus, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
