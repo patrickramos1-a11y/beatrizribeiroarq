@@ -10,33 +10,71 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as BriefingTokenRouteImport } from './routes/briefing.$token'
+import { Route as AdminIdRouteImport } from './routes/admin.$id'
+import { Route as BriefingTokenEnviadoRouteImport } from './routes/briefing.$token.enviado'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BriefingTokenRoute = BriefingTokenRouteImport.update({
+  id: '/briefing/$token',
+  path: '/briefing/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminIdRoute = AdminIdRouteImport.update({
+  id: '/admin/$id',
+  path: '/admin/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BriefingTokenEnviadoRoute = BriefingTokenEnviadoRouteImport.update({
+  id: '/enviado',
+  path: '/enviado',
+  getParentRoute: () => BriefingTokenRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin/$id': typeof AdminIdRoute
+  '/briefing/$token': typeof BriefingTokenRouteWithChildren
+  '/briefing/$token/enviado': typeof BriefingTokenEnviadoRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin/$id': typeof AdminIdRoute
+  '/briefing/$token': typeof BriefingTokenRouteWithChildren
+  '/briefing/$token/enviado': typeof BriefingTokenEnviadoRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin/$id': typeof AdminIdRoute
+  '/briefing/$token': typeof BriefingTokenRouteWithChildren
+  '/briefing/$token/enviado': typeof BriefingTokenEnviadoRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/admin/$id'
+    | '/briefing/$token'
+    | '/briefing/$token/enviado'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/admin/$id' | '/briefing/$token' | '/briefing/$token/enviado'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin/$id'
+    | '/briefing/$token'
+    | '/briefing/$token/enviado'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminIdRoute: typeof AdminIdRoute
+  BriefingTokenRoute: typeof BriefingTokenRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -48,22 +86,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/briefing/$token': {
+      id: '/briefing/$token'
+      path: '/briefing/$token'
+      fullPath: '/briefing/$token'
+      preLoaderRoute: typeof BriefingTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/$id': {
+      id: '/admin/$id'
+      path: '/admin/$id'
+      fullPath: '/admin/$id'
+      preLoaderRoute: typeof AdminIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/briefing/$token/enviado': {
+      id: '/briefing/$token/enviado'
+      path: '/enviado'
+      fullPath: '/briefing/$token/enviado'
+      preLoaderRoute: typeof BriefingTokenEnviadoRouteImport
+      parentRoute: typeof BriefingTokenRoute
+    }
   }
 }
 
+interface BriefingTokenRouteChildren {
+  BriefingTokenEnviadoRoute: typeof BriefingTokenEnviadoRoute
+}
+
+const BriefingTokenRouteChildren: BriefingTokenRouteChildren = {
+  BriefingTokenEnviadoRoute: BriefingTokenEnviadoRoute,
+}
+
+const BriefingTokenRouteWithChildren = BriefingTokenRoute._addFileChildren(
+  BriefingTokenRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminIdRoute: AdminIdRoute,
+  BriefingTokenRoute: BriefingTokenRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
