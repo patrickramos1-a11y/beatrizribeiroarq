@@ -124,7 +124,7 @@ function PublicBriefing() {
         </div>
       </header>
 
-      <main className="flex-1 mx-auto max-w-5xl w-full px-6 py-12">
+      <main className="flex-1 mx-auto max-w-7xl w-full px-6 py-12">
         <span className="eyebrow">{briefing.project_type}</span>
         <h2 className="font-display text-3xl md:text-4xl mt-3 leading-tight">{q.title}</h2>
         {q.description && <p className="text-muted-foreground mt-3 max-w-2xl">{q.description}</p>}
