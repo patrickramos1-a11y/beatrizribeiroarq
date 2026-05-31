@@ -54,6 +54,7 @@ export async function listBriefings(): Promise<Briefing[]> {
   const { data, error } = await supabase
     .from("briefings")
     .select("*")
+    .neq("client_name", "Biblioteca de perguntas")
     .order("created_at", { ascending: false });
   if (error) throw error;
   return data as Briefing[];
@@ -171,6 +172,23 @@ export async function createBriefing(input: {
     .single();
   if (error) throw error;
   return data as Briefing;
+}
+
+export async function getOrCreateLibraryBriefing() {
+  const { data: existing, error: lookupError } = await supabase
+    .from("briefings")
+    .select("*")
+    .eq("client_name", "Biblioteca de perguntas")
+    .maybeSingle();
+  if (lookupError) throw lookupError;
+  if (existing) return existing as Briefing;
+
+  return createBriefing({
+    client_name: "Biblioteca de perguntas",
+    project_type: "Acervo interno",
+    title: "Perguntas padrão",
+    intro: "Perguntas, imagens e interpretações usadas como base para novos briefings.",
+  });
 }
 
 export async function updateBriefing(id: string, patch: Partial<Briefing>) {

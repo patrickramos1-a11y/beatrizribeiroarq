@@ -1,10 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { listBriefings, resetPlatform, createBriefing } from "@/lib/briefing-queries";
+import { listBriefings, resetPlatform, createBriefing, getOrCreateLibraryBriefing } from "@/lib/briefing-queries";
 import { PageShell } from "@/components/Brand";
 import { StatusBadge } from "@/components/KindBadge";
 import { Button } from "@/components/ui/button";
-import { Copy, RotateCcw, ArrowUpRight, FileText, Plus, Pencil, Eye } from "lucide-react";
+import { Copy, RotateCcw, ArrowUpRight, FileText, Plus, Pencil, Eye, Library } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -50,6 +50,15 @@ function AdminDashboard() {
     }
   };
 
+  const openLibrary = async () => {
+    try {
+      const library = await getOrCreateLibraryBriefing();
+      navigate({ to: "/editor/$id", params: { id: library.id } });
+    } catch (e: any) {
+      toast.error("Erro ao abrir biblioteca", { description: e.message });
+    }
+  };
+
   const doReset = async () => {
     try {
       await resetPlatform();
@@ -79,6 +88,9 @@ function AdminDashboard() {
           </div>
 
           <div className="flex gap-2 flex-wrap">
+            <Button variant="outline" size="lg" onClick={openLibrary} className="gap-2">
+              <Library className="w-4 h-4" /> Biblioteca
+            </Button>
             <Button size="lg" onClick={newBriefing} className="gap-2">
               <Plus className="w-4 h-4" /> Novo briefing
             </Button>

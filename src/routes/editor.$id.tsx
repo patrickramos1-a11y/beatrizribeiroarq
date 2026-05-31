@@ -12,6 +12,7 @@ import {
 import { PageShell } from "@/components/Brand";
 import { KindBadge } from "@/components/KindBadge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -61,6 +62,7 @@ function Editor() {
   }
 
   const { briefing, questions, options } = data;
+  const isLibraryBriefing = briefing.client_name === "Biblioteca de perguntas";
 
   const saveMeta = async () => {
     setSavingMeta(true);
@@ -163,8 +165,10 @@ function Editor() {
       </header>
 
       <section className="mx-auto max-w-5xl px-6 py-12">
-        <span className="eyebrow">Edição</span>
-        <h1 className="font-display text-4xl md:text-5xl mt-3">Configurar briefing</h1>
+        <span className="eyebrow">{isLibraryBriefing ? "Acervo interno" : "Edição"}</span>
+        <h1 className="font-display text-4xl md:text-5xl mt-3">
+          {isLibraryBriefing ? "Biblioteca de perguntas" : "Configurar briefing"}
+        </h1>
 
         <div className="mt-10 grid gap-5 md:grid-cols-2">
           <div>
@@ -199,10 +203,13 @@ function Editor() {
             <h2 className="font-display text-3xl mt-2">{questions.length} no roteiro</h2>
           </div>
           <div className="flex gap-2 flex-wrap">
-            <TemplateLibraryDialog
-              currentBriefingId={briefing.id}
-              onImport={importFromTemplate}
-            />
+            {!isLibraryBriefing && (
+              <TemplateLibraryDialog
+                currentBriefingId={briefing.id}
+                currentQuestions={questions}
+                onImport={importFromTemplate}
+              />
+            )}
             <Button onClick={addQuestion} className="gap-2">
               <Plus className="w-4 h-4" /> Nova pergunta
             </Button>
@@ -233,14 +240,37 @@ function Editor() {
 }
 
 function TemplateLibraryDialog({
-  currentBriefingId, onImport,
-}: { currentBriefingId: string; onImport: (id: string) => void }) {
+  currentBriefingId, currentQuestions, onImport,
+}: { currentBriefingId: string; currentQuestions: Question[]; onImport: (id: string) => Promise<void> }) {
   const [open, setOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [importing, setImporting] = useState(false);
   const { data: templates = [], isLoading } = useQuery({
     queryKey: ["templates", currentBriefingId],
     queryFn: () => listQuestionTemplates(currentBriefingId),
     enabled: open,
   });
+
+  const existingSignatures = new Set(currentQuestions.map(questionSignature));
+  const availableTemplates = templates.filter((t) => !existingSignatures.has(questionSignature(t)));
+
+  const toggleSelected = (id: string, checked: boolean) => {
+    setSelectedIds((current) => checked ? [...current, id] : current.filter((selectedId) => selectedId !== id));
+  };
+
+  const importSelected = async () => {
+    setImporting(true);
+    try {
+      for (const id of selectedIds) {
+        await onImport(id);
+      }
+      setSelectedIds([]);
+      setOpen(false);
+      toast.success(`${selectedIds.length} pergunta${selectedIds.length === 1 ? "" : "s"} importada${selectedIds.length === 1 ? "" : "s"}`);
+    } finally {
+      setImporting(false);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -259,27 +289,51 @@ function TemplateLibraryDialog({
 
         {isLoading ? (
           <div className="py-12 text-center text-muted-foreground">Carregando…</div>
-        ) : templates.length === 0 ? (
+        ) : availableTemplates.length === 0 ? (
           <div className="py-12 text-center text-muted-foreground">
-            Nenhuma pergunta disponível em outros briefings.
+            Nenhuma pergunta nova disponível na biblioteca.
           </div>
         ) : (
           <div className="space-y-5 mt-2">
-            {templates.map((t) => (
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <p className="text-sm text-muted-foreground">
+                {availableTemplates.length} pergunta{availableTemplates.length === 1 ? "" : "s"} disponível{availableTemplates.length === 1 ? "" : "eis"}.
+              </p>
+              <Button size="sm" onClick={importSelected} disabled={selectedIds.length === 0 || importing} className="gap-1.5">
+                {importing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+                Incluir selecionadas
+              </Button>
+            </div>
+            {availableTemplates.map((t) => {
+              const checked = selectedIds.includes(t.id);
+              return (
               <div key={t.id} className="border border-border/60 rounded-sm p-5">
                 <div className="flex items-start justify-between gap-4 flex-wrap mb-3">
-                  <div>
-                    <KindBadge kind={t.kind} size="xs" />
-                    <p className="font-display text-lg mt-2">{t.title}</p>
-                    <p className="eyebrow mt-1">de {t.briefing_name}</p>
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <Checkbox checked={checked} onCheckedChange={(value) => toggleSelected(t.id, value === true)} className="mt-1" />
+                    <div>
+                      <KindBadge kind={t.kind} size="xs" />
+                      <p className="font-display text-lg mt-2">{t.title}</p>
+                      <p className="eyebrow mt-1">de {t.briefing_name}</p>
+                    </div>
+                  </label>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => toggleSelected(t.id, !checked)}
+                      className="gap-1.5"
+                    >
+                      {checked ? "Desmarcar" : "Selecionar"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={async () => { await onImport(t.id); setSelectedIds((ids) => ids.filter((id) => id !== t.id)); }}
+                      className="gap-1.5"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Incluir
+                    </Button>
                   </div>
-                  <Button
-                    size="sm"
-                    onClick={() => { onImport(t.id); setOpen(false); }}
-                    className="gap-1.5"
-                  >
-                    <Plus className="w-3.5 h-3.5" /> Importar
-                  </Button>
                 </div>
                 {t.options.length > 0 && (
                   <div className="flex gap-2 overflow-x-auto pt-2">
@@ -294,12 +348,16 @@ function TemplateLibraryDialog({
                   </div>
                 )}
               </div>
-            ))}
+            )})}
           </div>
         )}
       </DialogContent>
     </Dialog>
   );
+}
+
+function questionSignature(question: Pick<Question, "title" | "kind">) {
+  return `${question.kind}:${question.title.trim().toLocaleLowerCase("pt-BR").replace(/\s+/g, " ")}`;
 }
 
 function QuestionEditor({
